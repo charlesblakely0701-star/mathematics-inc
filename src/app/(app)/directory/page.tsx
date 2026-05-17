@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 
-import { UserCard } from "@/components/directory/user-card";
+import { DirectorySearch } from "@/components/directory/directory-search";
 import { getDirectory } from "@/lib/users";
 
 export const metadata: Metadata = {
   title: "Directory · Mathematics, Inc.",
 };
 
-// Always fetch fresh data — this is a directory, staleness would be confusing.
 export const dynamic = "force-dynamic";
 
 export default async function DirectoryPage() {
@@ -24,31 +23,7 @@ export default async function DirectoryPage() {
           at Mathematics, Inc.
         </p>
       </header>
-
-      {users.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <ul
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          aria-label="Employees"
-        >
-          {users.map((user) => (
-            <li key={user.id} className="contents">
-              <UserCard user={user} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <DirectorySearch users={users} />
     </section>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="rounded-xl border border-dashed border-foreground/15 px-6 py-12 text-center">
-      <p className="text-sm text-foreground/70">
-        No one&rsquo;s registered yet. You&rsquo;re the first.
-      </p>
-    </div>
   );
 }
