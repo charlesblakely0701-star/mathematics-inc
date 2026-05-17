@@ -13,7 +13,8 @@ export type ProfileFieldErrors = Partial<
     | "department"
     | "bio"
     | "researchInterests"
-    | "websiteUrl",
+    | "websiteUrl"
+    | "favoriteTheorem",
     string
   >
 >;
@@ -38,6 +39,7 @@ export async function updateProfileAction(
     bio: String(formData.get("bio") ?? ""),
     researchInterests: String(formData.get("researchInterests") ?? ""),
     websiteUrl: String(formData.get("websiteUrl") ?? ""),
+    favoriteTheorem: String(formData.get("favoriteTheorem") ?? ""),
   };
 
   const parsed = updateProfileSchema.safeParse(raw);
@@ -52,7 +54,8 @@ export async function updateProfileAction(
           key === "department" ||
           key === "bio" ||
           key === "researchInterests" ||
-          key === "websiteUrl") &&
+          key === "websiteUrl" ||
+          key === "favoriteTheorem") &&
         !fieldErrors[key]
       ) {
         fieldErrors[key] = issue.message;
@@ -76,6 +79,7 @@ export async function updateProfileAction(
         bio: parsed.data.bio || null,
         researchInterests: interests,
         websiteUrl: parsed.data.websiteUrl || null,
+        favoriteTheorem: parsed.data.favoriteTheorem || null,
       },
       select: { id: true },
     });

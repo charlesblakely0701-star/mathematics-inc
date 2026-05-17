@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { getAvatarStyle } from "@/lib/avatar";
 import { getInitials, getProfile } from "@/lib/users";
+import { LatexBlock } from "@/components/latex-block";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -96,6 +97,18 @@ export default async function ProfileDetailPage({ params }: Props) {
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {/* Favorite theorem */}
+        {user.favoriteTheorem && (
+          <section>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-foreground/40">
+              Favorite theorem
+            </h2>
+            <div className="rounded-lg border border-foreground/10 bg-foreground/[0.02] px-4 py-3 text-sm">
+              <LatexBlock>{user.favoriteTheorem}</LatexBlock>
+            </div>
           </section>
         )}
 
