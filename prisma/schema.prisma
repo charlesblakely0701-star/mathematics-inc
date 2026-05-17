@@ -1,0 +1,31 @@
+// Mathematics, Inc. — single User model is enough for the MVP.
+// Auth.js v5 with the Credentials provider + JWT sessions does not require
+// Account/Session/VerificationToken tables, so we keep the schema minimal.
+// `department` is intentionally a free-text String? in v1 so signup never
+// blocks on a schema migration; it can be promoted to an enum if/when we
+// add the department filter (see README "Future improvements").
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  passwordHash      String
+  name              String
+  title             String?
+  department        String?
+  bio               String?
+  researchInterests String[] @default([])
+  websiteUrl        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([department])
+}
