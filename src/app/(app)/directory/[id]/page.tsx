@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import { getAvatarStyle } from "@/lib/avatar";
 import { getInitials, getProfile } from "@/lib/users";
 
 type Props = { params: Promise<{ id: string }> };
@@ -19,6 +20,7 @@ export default async function ProfileDetailPage({ params }: Props) {
   if (!user) notFound();
 
   const initials = getInitials(user.name);
+  const avatarStyle = getAvatarStyle(user.name);
 
   return (
     <div className="mx-auto w-full max-w-2xl">
@@ -47,7 +49,8 @@ export default async function ProfileDetailPage({ params }: Props) {
       <header className="flex items-start gap-5">
         <span
           aria-hidden
-          className="inline-flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-foreground/10 bg-foreground/[0.06] font-serif text-3xl text-foreground/80"
+          style={avatarStyle}
+          className="inline-flex h-20 w-20 shrink-0 items-center justify-center rounded-full font-serif text-3xl font-medium"
         >
           {initials}
         </span>

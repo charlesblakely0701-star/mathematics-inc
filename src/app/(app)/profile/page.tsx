@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { getAvatarStyle } from "@/lib/avatar";
 import { requireSession } from "@/lib/auth";
 import { getInitials, getProfile } from "@/lib/users";
 import { ProfileForm } from "./profile-form";
@@ -30,6 +31,7 @@ export default async function ProfilePage() {
   }
 
   const initials = getInitials(user.name);
+  const avatarStyle = getAvatarStyle(user.name);
 
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-8">
@@ -37,7 +39,8 @@ export default async function ProfilePage() {
       <header className="flex items-center gap-4">
         <span
           aria-hidden
-          className="inline-flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-foreground/10 bg-foreground/[0.06] font-serif text-2xl text-foreground/80"
+          style={avatarStyle}
+          className="inline-flex h-16 w-16 shrink-0 items-center justify-center rounded-full font-serif text-2xl font-medium"
         >
           {initials}
         </span>
