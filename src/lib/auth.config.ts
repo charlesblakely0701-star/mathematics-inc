@@ -23,8 +23,17 @@ export const authConfig = {
       const { pathname } = nextUrl;
 
       if (isPublicPath(pathname)) {
+        // Logged-in users visiting /login or /register → send to the app.
         if (isLoggedIn && pathname !== ROOT_ROUTE) {
           return Response.redirect(new URL("/directory", nextUrl));
+        }
+        // Logged-in users visiting / → send to the app.
+        if (isLoggedIn && pathname === ROOT_ROUTE) {
+          return Response.redirect(new URL("/directory", nextUrl));
+        }
+        // Logged-out users visiting / → send to login.
+        if (!isLoggedIn && pathname === ROOT_ROUTE) {
+          return Response.redirect(new URL("/login", nextUrl));
         }
         return true;
       }

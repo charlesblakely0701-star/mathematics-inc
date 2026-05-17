@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { NavLink } from "@/components/nav-link";
 import { SignOutButton } from "@/components/sign-out-button";
 import { requireSession } from "@/lib/auth";
 
@@ -27,19 +28,9 @@ export default async function AppLayout({
             </span>
             Mathematics, Inc.
           </Link>
-          <nav className="flex items-center gap-1 text-sm">
-            <Link
-              href="/directory"
-              className="rounded-md px-3 py-1.5 text-foreground/70 hover:bg-foreground/[0.06] hover:text-foreground"
-            >
-              Directory
-            </Link>
-            <Link
-              href="/profile"
-              className="rounded-md px-3 py-1.5 text-foreground/70 hover:bg-foreground/[0.06] hover:text-foreground"
-            >
-              My profile
-            </Link>
+          <nav className="flex items-center gap-1">
+            <NavLink href="/directory">Directory</NavLink>
+            <NavLink href="/profile">My profile</NavLink>
             <span className="mx-2 hidden text-xs text-foreground/40 sm:inline">
               {session.user.email}
             </span>
