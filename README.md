@@ -6,7 +6,20 @@ A virtual employee directory for the mathematicians of Mathematics, Inc. Any emp
 
 **https://mathematics-inc.vercel.app**
 
-Register with your own email, or create a test account — no email verification required.
+The directory is pre-seeded with 8 fictional mathematicians. You can sign in as any of them:
+
+| Name | Email | Password |
+|---|---|---|
+| Emmy Noether | emmy.noether@math-inc.example | theorem1234 |
+| Srinivasa Ramanujan | srinivasa.ramanujan@math-inc.example | theorem1234 |
+| Carl Friedrich Gauss | carl.gauss@math-inc.example | theorem1234 |
+| Maryam Mirzakhani | maryam.mirzakhani@math-inc.example | theorem1234 |
+| Alan Turing | alan.turing@math-inc.example | theorem1234 |
+| Sofya Kovalevskaya | sofya.kovalevskaya@math-inc.example | theorem1234 |
+| Paul Erdős | paul.erdos@math-inc.example | theorem1234 |
+| Katherine Johnson | katherine.johnson@math-inc.example | theorem1234 |
+
+Or register a new account — no email verification required.
 
 ## Tech stack
 
@@ -44,7 +57,10 @@ cp .env.example .env.local
 # 3. Push schema to your database
 pnpm db:push
 
-# 4. Start dev server
+# 4. (Optional) Seed demo mathematicians
+pnpm db:seed
+
+# 5. Start dev server
 pnpm dev
 # → http://localhost:3000
 ```
