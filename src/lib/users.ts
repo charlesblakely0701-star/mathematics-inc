@@ -12,6 +12,7 @@ const PUBLIC_USER_SELECT = {
   bio: true,
   researchInterests: true,
   websiteUrl: true,
+  favoriteTheorem: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -25,6 +26,7 @@ export type DirectoryUser = {
   bio: string | null;
   researchInterests: string[];
   websiteUrl: string | null;
+  favoriteTheorem: string | null;
   createdAt: Date;
   updatedAt: Date;
 };

@@ -22,6 +22,11 @@ export const updateProfileSchema = z.object({
       (v) => v === "" || v.startsWith("http://") || v.startsWith("https://"),
       "Please enter a valid URL (starting with http:// or https://).",
     ),
+  favoriteTheorem: z
+    .string()
+    .trim()
+    .max(500, "Favorite theorem is too long.")
+    .or(z.literal("")),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

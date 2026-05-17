@@ -134,6 +134,22 @@ export function ProfileForm({ user }: { user: DirectoryUser }) {
       </Field>
 
       <Field>
+        <Label htmlFor="favoriteTheorem">Favorite theorem</Label>
+        <Input
+          id="favoriteTheorem"
+          name="favoriteTheorem"
+          defaultValue={user.favoriteTheorem ?? ""}
+          placeholder="e.g. \sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6}"
+          invalid={!!fieldErrors.favoriteTheorem}
+        />
+        {fieldErrors.favoriteTheorem ? (
+          <FieldError>{fieldErrors.favoriteTheorem}</FieldError>
+        ) : (
+          <FieldHelp>LaTeX is supported. Rendered on your profile page.</FieldHelp>
+        )}
+      </Field>
+
+      <Field>
         <Label htmlFor="websiteUrl">Website</Label>
         <Input
           id="websiteUrl"

@@ -24,6 +24,7 @@ model User {
   bio               String?
   researchInterests String[] @default([])
   websiteUrl        String?
+  favoriteTheorem   String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
