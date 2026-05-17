@@ -4,9 +4,9 @@ A virtual employee directory for the mathematicians of Mathematics, Inc. Any emp
 
 ## Live app
 
-> **URL will be added here after the deploy PR lands.**
->
-> Demo credentials: `demo@math-inc.example` / `theorem1234`  *(seeded at deploy)*
+**https://mathematics-inc.vercel.app**
+
+Register with your own email, or create a test account — no email verification required.
 
 ## Tech stack
 
