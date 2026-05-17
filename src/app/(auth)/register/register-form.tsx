@@ -24,7 +24,7 @@ function SubmitButton() {
   );
 }
 
-export function RegisterForm() {
+export function RegisterForm({ showGoogleHint = false }: { showGoogleHint?: boolean }) {
   const [state, formAction] = useActionState(registerAction, initialState);
   const fieldErrors =
     state.status === "error" ? state.fieldErrors ?? {} : {};
@@ -38,7 +38,15 @@ export function RegisterForm() {
           We sent a verification link to <strong>{state.email}</strong>.
           Click it to activate your account, then sign in.
         </p>
-        <p className="text-foreground/50 text-xs">The link expires in 24 hours. Check your spam folder if it doesn&apos;t arrive.</p>
+        <p className="text-foreground/50 text-xs">
+          The link expires in 24 hours. Check your spam folder if it doesn&apos;t arrive.
+        </p>
+        {showGoogleHint && (
+          <p className="text-foreground/50 text-xs">
+            Email not arriving? Use <strong>Continue with Google</strong> on the sign-in page
+            instead — no verification email needed.
+          </p>
+        )}
       </div>
     );
   }

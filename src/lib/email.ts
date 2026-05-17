@@ -1,17 +1,85 @@
 import { Resend } from "resend";
 
+import { isGoogleAuthConfigured } from "@/lib/google-auth";
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// During development / before domain verification, Resend only delivers to the
-// account-owner's email when using the sandbox address. Swap FROM_ADDRESS to a
-// verified domain address (e.g. "no-reply@math-inc.com") in production.
-const FROM_ADDRESS = "Mathematics Inc. <onboarding@resend.dev>";
+export type EmailSendResult = { ok: true } | { ok: false; message: string };
+
+/**
+ * Verified-domain sender, e.g. "Mathematics Inc. <hello@yourdomain.com>).
+ * Required to deliver to arbitrary personal inboxes (Gmail, etc.). If unset,
+ * falls back to Resend's sandbox address, which only delivers to the Resend
+ * account owner's email.
+ */
+function fromAddress(): string {
+  const custom = process.env.RESEND_FROM_EMAIL?.trim();
+  if (custom) {
+    return custom.includes("<") ? custom : `Mathematics Inc. <${custom}>`;
+  }
+  return "Mathematics Inc. <onboarding@resend.dev>";
+}
 
 function baseUrl(): string {
-  // AUTH_URL is already set in Vercel env; falls back to localhost for dev.
   return (
     process.env.AUTH_URL?.replace(/\/$/, "") ?? "http://localhost:3000"
   );
+}
+
+function userFacingSendError(message: string): string {
+  const m = message.toLowerCase();
+  if (
+    m.includes("only send testing emails") ||
+    m.includes("verify a domain")
+  ) {
+    let msg =
+      "We could not send email to that address. Resend's test sender only delivers to " +
+      "the email on your Resend account until you add a domain at resend.com/domains, " +
+      "verify it in DNS, and set RESEND_FROM_EMAIL to an address on that domain. " +
+      "A domain usually costs about $10/year.";
+    if (isGoogleAuthConfigured()) {
+      msg +=
+        " Or use Continue with Google on the login or register page — no verification email needed.";
+    }
+    return msg;
+  }
+  return message || "Email could not be sent. Please try again later.";
+}
+
+async function sendTransactional(options: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<EmailSendResult> {
+  if (!process.env.RESEND_API_KEY?.trim()) {
+    console.error("[email] RESEND_API_KEY is not set");
+    return {
+      ok: false,
+      message:
+        "Email is not configured (missing RESEND_API_KEY). Set it in your environment.",
+    };
+  }
+
+  try {
+    const result = await resend.emails.send({
+      from: fromAddress(),
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+    });
+
+    if (result.error) {
+      console.error("[resend]", result.error.name, result.error.message);
+      return { ok: false, message: userFacingSendError(result.error.message) };
+    }
+    return { ok: true };
+  } catch (e) {
+    console.error("[resend]", e);
+    const msg = e instanceof Error ? e.message : "Unknown error sending email.";
+    return { ok: false, message: userFacingSendError(msg) };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -20,11 +88,10 @@ function baseUrl(): string {
 export async function sendPasswordResetEmail(
   to: string,
   token: string,
-): Promise<void> {
+): Promise<EmailSendResult> {
   const url = `${baseUrl()}/reset-password?token=${token}`;
 
-  await resend.emails.send({
-    from: FROM_ADDRESS,
+  return sendTransactional({
     to,
     subject: "Reset your Mathematics Inc. password",
     html: passwordResetHtml(url),
@@ -38,11 +105,10 @@ export async function sendPasswordResetEmail(
 export async function sendVerificationEmail(
   to: string,
   token: string,
-): Promise<void> {
+): Promise<EmailSendResult> {
   const url = `${baseUrl()}/verify-email?token=${token}`;
 
-  await resend.emails.send({
-    from: FROM_ADDRESS,
+  return sendTransactional({
     to,
     subject: "Verify your Mathematics Inc. email",
     html: verificationHtml(url),

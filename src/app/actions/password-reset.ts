@@ -68,7 +68,14 @@ export async function requestPasswordReset(
       },
     });
 
-    await sendPasswordResetEmail(email, token).catch(console.error);
+    const sendResult = await sendPasswordResetEmail(email, token);
+    if (!sendResult.ok) {
+      await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+      console.error(
+        "requestPasswordReset: email send failed (token rolled back):",
+        sendResult.message,
+      );
+    }
   }
 
   // Always return success to avoid leaking whether the email exists.

@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { AuthDivider } from "@/components/auth/auth-divider";
+import { GoogleSignIn } from "@/components/auth/google-sign-in";
+import { isGoogleAuthConfigured } from "@/lib/google-auth";
+
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
@@ -8,6 +12,8 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
+  const showGoogle = isGoogleAuthConfigured();
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -16,7 +22,16 @@ export default function LoginPage() {
           Sign in to browse the directory.
         </p>
       </header>
+
+      {showGoogle && (
+        <>
+          <GoogleSignIn />
+          <AuthDivider />
+        </>
+      )}
+
       <LoginForm />
+
       <p className="text-center text-sm text-foreground/60">
         New to Mathematics, Inc.?{" "}
         <Link

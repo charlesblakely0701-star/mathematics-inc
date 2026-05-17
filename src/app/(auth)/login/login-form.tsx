@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 
 import { loginAction, type LoginState } from "@/app/actions/auth";
+import { ResendVerificationForm } from "@/components/auth/resend-verification-form";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, Input, Label } from "@/components/ui/field";
 
@@ -23,6 +24,8 @@ export function LoginForm() {
   const [state, formAction] = useActionState(loginAction, initialState);
   const fieldErrors = state.status === "error" ? state.fieldErrors ?? {} : {};
   const formError = state.status === "error" ? state.formError : undefined;
+  const unverifiedEmail =
+    state.status === "error" ? state.unverifiedEmail : undefined;
 
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
@@ -34,6 +37,7 @@ export function LoginForm() {
           type="email"
           autoComplete="email"
           required
+          defaultValue={unverifiedEmail}
           invalid={!!fieldErrors.email}
         />
         <FieldError>{fieldErrors.email}</FieldError>
@@ -67,6 +71,10 @@ export function LoginForm() {
         >
           {formError}
         </p>
+      )}
+
+      {unverifiedEmail && (
+        <ResendVerificationForm defaultEmail={unverifiedEmail} />
       )}
 
       <SubmitButton />
