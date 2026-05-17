@@ -38,12 +38,18 @@ const nextAuth = NextAuth({
             email: true,
             name: true,
             passwordHash: true,
+            emailVerified: true,
           },
         });
         if (!user) return null;
 
         const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
         if (!ok) return null;
+
+        if (!user.emailVerified) {
+          // Throw a recognizable string so loginAction can surface the right message.
+          throw new Error("EMAIL_NOT_VERIFIED");
+        }
 
         return { id: user.id, email: user.email, name: user.name };
       },

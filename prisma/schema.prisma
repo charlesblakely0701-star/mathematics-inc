@@ -1,9 +1,6 @@
-// Mathematics, Inc. — single User model is enough for the MVP.
-// Auth.js v5 with the Credentials provider + JWT sessions does not require
-// Account/Session/VerificationToken tables, so we keep the schema minimal.
-// `department` is intentionally a free-text String? in v1 so signup never
-// blocks on a schema migration; it can be promoted to an enum if/when we
-// add the department filter (see README "Future improvements").
+// Mathematics, Inc. — User model plus token tables for email verification
+// and password reset. Auth.js v5 with the Credentials provider + JWT sessions
+// does not require Account/Session/VerificationToken tables.
 
 generator client {
   provider = "prisma-client-js"
@@ -25,8 +22,36 @@ model User {
   researchInterests String[] @default([])
   websiteUrl        String?
   favoriteTheorem   String?
+  // null = unverified (only for accounts created after email verification was
+  // introduced). Seeded/admin accounts are pre-verified via db:seed.
+  emailVerified     DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  passwordResetTokens      PasswordResetToken[]
+  emailVerificationTokens  EmailVerificationToken[]
+
   @@index([department])
+}
+
+// Stores SHA-256 hash of the raw token (never the raw token itself).
+// One active token per user; old tokens are replaced on each request.
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
