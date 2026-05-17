@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireSession } from "@/lib/auth";
+import { requireSession, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { updateProfileSchema } from "@/lib/validation/profile";
 
@@ -95,4 +95,38 @@ export async function updateProfileAction(
   revalidatePath("/profile");
 
   return { status: "success" };
+}
+
+export type DeleteAccountState =
+  | { status: "idle" }
+  | { status: "error"; message: string };
+
+const DELETE_CONFIRM = "DELETE";
+
+export async function deleteAccountAction(
+  _prev: DeleteAccountState,
+  formData: FormData,
+): Promise<DeleteAccountState> {
+  const session = await requireSession();
+  const confirm = String(formData.get("confirm") ?? "").trim();
+
+  if (confirm !== DELETE_CONFIRM) {
+    return {
+      status: "error",
+      message: `Type ${DELETE_CONFIRM} to confirm account deletion.`,
+    };
+  }
+
+  try {
+    await prisma.user.delete({ where: { id: session.user.id } });
+  } catch (err) {
+    console.error("deleteAccountAction: failed", err);
+    return {
+      status: "error",
+      message: "Could not delete your account. Please try again.",
+    };
+  }
+
+  await signOut({ redirectTo: "/login" });
+  return { status: "idle" };
 }

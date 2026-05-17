@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { NavLink } from "@/components/nav-link";
-import { SignOutButton } from "@/components/sign-out-button";
+import { UserMenu } from "@/components/user-menu";
 import { requireSession } from "@/lib/auth";
 
 export default async function AppLayout({
@@ -30,11 +30,10 @@ export default async function AppLayout({
           </Link>
           <nav className="flex items-center gap-1">
             <NavLink href="/directory">Directory</NavLink>
-            <NavLink href="/profile">My profile</NavLink>
-            <span className="mx-2 hidden text-xs text-foreground/40 sm:inline">
-              {session.user.email}
-            </span>
-            <SignOutButton />
+            <UserMenu
+              name={session.user.name ?? "User"}
+              email={session.user.email ?? null}
+            />
           </nav>
         </div>
       </header>

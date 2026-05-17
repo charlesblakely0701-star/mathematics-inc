@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "md" | "sm";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -16,6 +16,8 @@ const variantClasses: Record<Variant, string> = {
   secondary:
     "border border-foreground/15 bg-background hover:bg-foreground/[0.04]",
   ghost: "hover:bg-foreground/[0.06]",
+  danger:
+    "border border-red-500/30 bg-red-500/5 text-red-700 hover:bg-red-500/10 dark:text-red-400",
 };
 
 const sizeClasses: Record<Size, string> = {

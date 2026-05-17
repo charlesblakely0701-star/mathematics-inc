@@ -20,6 +20,8 @@ function isPublicPath(pathname: string) {
 }
 
 export const authConfig = {
+  // Required when using a non-default port (e.g. 3001) or behind a proxy.
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   providers: [],
