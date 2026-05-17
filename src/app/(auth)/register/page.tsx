@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { AuthDivider } from "@/components/auth/auth-divider";
+import { GoogleSignIn } from "@/components/auth/google-sign-in";
+import { isGoogleAuthConfigured } from "@/lib/google-auth";
+
 import { RegisterForm } from "./register-form";
 
 export const metadata: Metadata = {
@@ -8,6 +12,8 @@ export const metadata: Metadata = {
 };
 
 export default function RegisterPage() {
+  const showGoogle = isGoogleAuthConfigured();
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -15,10 +21,21 @@ export default function RegisterPage() {
           Create your profile
         </h1>
         <p className="text-sm text-foreground/60">
-          You can fill in the rest later from the directory.
+          {showGoogle
+            ? "Use Google for instant access, or register with email (verification required)."
+            : "You can fill in the rest later from the directory."}
         </p>
       </header>
-      <RegisterForm />
+
+      {showGoogle && (
+        <>
+          <GoogleSignIn />
+          <AuthDivider />
+        </>
+      )}
+
+      <RegisterForm showGoogleHint={showGoogle} />
+
       <p className="text-center text-sm text-foreground/60">
         Already have an account?{" "}
         <Link
