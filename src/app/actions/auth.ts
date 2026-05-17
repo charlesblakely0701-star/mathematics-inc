@@ -1,11 +1,30 @@
 "use server";
 
+import { headers } from "next/headers";
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
 
 import { signIn, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { checkRateLimit, evictExpired } from "@/lib/rate-limit";
 import { loginSchema, registerSchema } from "@/lib/validation/auth";
+
+const RATE_LIMIT_REGISTER = 5; // attempts per minute per IP
+const RATE_LIMIT_LOGIN = 10;
+
+async function getClientIp(): Promise<string> {
+  const hdrs = await headers();
+  return (
+    hdrs.get("x-forwarded-for")?.split(",")[0].trim() ??
+    hdrs.get("x-real-ip") ??
+    "unknown"
+  );
+}
+
+const RATE_LIMITED: RegisterState = {
+  status: "error",
+  formError: "Too many attempts. Please wait a minute and try again.",
+};
 
 export type RegisterFieldErrors = Partial<
   Record<
@@ -35,6 +54,12 @@ export async function registerAction(
   _prevState: RegisterState,
   formData: FormData,
 ): Promise<RegisterState> {
+  evictExpired();
+  const ip = await getClientIp();
+  if (!checkRateLimit(`register:${ip}`, RATE_LIMIT_REGISTER)) {
+    return RATE_LIMITED;
+  }
+
   const raw = {
     email: String(formData.get("email") ?? ""),
     password: String(formData.get("password") ?? ""),
@@ -134,6 +159,15 @@ export async function loginAction(
   _prevState: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
+  evictExpired();
+  const ip = await getClientIp();
+  if (!checkRateLimit(`login:${ip}`, RATE_LIMIT_LOGIN)) {
+    return {
+      status: "error",
+      formError: "Too many attempts. Please wait a minute and try again.",
+    };
+  }
+
   const raw = {
     email: String(formData.get("email") ?? ""),
     password: String(formData.get("password") ?? ""),
