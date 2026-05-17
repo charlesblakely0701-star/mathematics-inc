@@ -3,9 +3,9 @@
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
 
-import { signIn } from "@/lib/auth";
+import { signIn, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { registerSchema } from "@/lib/validation/auth";
+import { loginSchema, registerSchema } from "@/lib/validation/auth";
 
 export type RegisterFieldErrors = Partial<
   Record<
@@ -121,3 +121,61 @@ export async function registerAction(
 
   return { status: "idle" };
 }
+
+export type LoginFieldErrors = Partial<
+  Record<"email" | "password", string>
+>;
+
+export type LoginState =
+  | { status: "idle" }
+  | { status: "error"; formError?: string; fieldErrors?: LoginFieldErrors };
+
+export async function loginAction(
+  _prevState: LoginState,
+  formData: FormData,
+): Promise<LoginState> {
+  const raw = {
+    email: String(formData.get("email") ?? ""),
+    password: String(formData.get("password") ?? ""),
+  };
+
+  const parsed = loginSchema.safeParse(raw);
+  if (!parsed.success) {
+    const fieldErrors: LoginFieldErrors = {};
+    for (const issue of parsed.error.issues) {
+      const key = issue.path[0];
+      if (
+        typeof key === "string" &&
+        (key === "email" || key === "password") &&
+        !fieldErrors[key]
+      ) {
+        fieldErrors[key] = issue.message;
+      }
+    }
+    return { status: "error", fieldErrors };
+  }
+
+  try {
+    await signIn("credentials", {
+      email: parsed.data.email.trim().toLowerCase(),
+      password: parsed.data.password,
+      redirectTo: "/directory",
+    });
+  } catch (err) {
+    if (err instanceof AuthError) {
+      // CredentialsSignin is the only failure we expect to bubble.
+      return {
+        status: "error",
+        formError: "Invalid email or password.",
+      };
+    }
+    throw err;
+  }
+
+  return { status: "idle" };
+}
+
+export async function signOutAction() {
+  await signOut({ redirectTo: "/login" });
+}
+
