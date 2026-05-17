@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { type DirectoryUser, getInitials } from "@/lib/users";
 
 const MAX_INTERESTS = 3;
@@ -8,7 +10,8 @@ export function UserCard({ user }: { user: DirectoryUser }) {
   const overflow = user.researchInterests.length - interests.length;
 
   return (
-    <article className="flex h-full flex-col gap-3 rounded-xl border border-foreground/10 bg-background p-5 transition-colors hover:border-foreground/20">
+    <Link href={`/directory/${user.id}`} className="group contents">
+    <article className="flex h-full flex-col gap-3 rounded-xl border border-foreground/10 bg-background p-5 transition-colors hover:border-foreground/25 hover:shadow-sm group-focus-visible:ring-2 group-focus-visible:ring-foreground/20">
       <header className="flex items-start gap-3">
         <span
           aria-hidden
@@ -54,5 +57,6 @@ export function UserCard({ user }: { user: DirectoryUser }) {
         </ul>
       )}
     </article>
+    </Link>
   );
 }
