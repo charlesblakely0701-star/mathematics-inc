@@ -6,7 +6,7 @@ export function SignOutButton({
   size = "sm",
   className,
 }: {
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "md" | "sm";
   className?: string;
 }) {

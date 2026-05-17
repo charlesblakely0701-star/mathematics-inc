@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getAvatarStyle } from "@/lib/avatar";
 import { requireSession } from "@/lib/auth";
 import { getInitials, getProfile } from "@/lib/users";
+import { DeleteAccountForm } from "./delete-account-form";
 import { ProfileForm } from "./profile-form";
 
 export const metadata: Metadata = {
@@ -60,6 +61,17 @@ export default async function ProfilePage() {
       <div className="rounded-xl border border-foreground/10 bg-background p-6">
         <h2 className="mb-5 text-base font-semibold">Edit profile</h2>
         <ProfileForm user={user} />
+      </div>
+
+      <div className="rounded-xl border border-red-500/20 bg-red-500/[0.03] p-6">
+        <h2 className="mb-1 text-base font-semibold text-red-800 dark:text-red-300">
+          Delete account
+        </h2>
+        <p className="mb-5 text-sm text-foreground/60">
+          Permanently remove your profile from the directory. This cannot be
+          undone.
+        </p>
+        <DeleteAccountForm />
       </div>
     </section>
   );
