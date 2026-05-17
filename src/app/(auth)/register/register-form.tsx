@@ -30,6 +30,19 @@ export function RegisterForm() {
     state.status === "error" ? state.fieldErrors ?? {} : {};
   const formError = state.status === "error" ? state.formError : undefined;
 
+  if (state.status === "success") {
+    return (
+      <div className="rounded-lg border border-foreground/10 bg-foreground/[0.03] px-5 py-6 text-sm text-foreground/80 space-y-2">
+        <p className="font-semibold text-foreground">Check your inbox!</p>
+        <p>
+          We sent a verification link to <strong>{state.email}</strong>.
+          Click it to activate your account, then sign in.
+        </p>
+        <p className="text-foreground/50 text-xs">The link expires in 24 hours. Check your spam folder if it doesn&apos;t arrive.</p>
+      </div>
+    );
+  }
+
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
       <Field>

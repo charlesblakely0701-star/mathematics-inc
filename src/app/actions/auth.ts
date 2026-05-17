@@ -6,10 +6,12 @@ import bcrypt from "bcryptjs";
 
 import { signIn, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { sendVerificationEmail } from "@/lib/email";
 import { checkRateLimit, evictExpired } from "@/lib/rate-limit";
+import { generateToken, addMinutes } from "@/lib/tokens";
 import { loginSchema, registerSchema } from "@/lib/validation/auth";
 
-const RATE_LIMIT_REGISTER = 5; // attempts per minute per IP
+const RATE_LIMIT_REGISTER = 5;
 const RATE_LIMIT_LOGIN = 10;
 
 async function getClientIp(): Promise<string> {
@@ -35,6 +37,7 @@ export type RegisterFieldErrors = Partial<
 
 export type RegisterState =
   | { status: "idle" }
+  | { status: "success"; email: string }
   | { status: "error"; formError?: string; fieldErrors?: RegisterFieldErrors };
 
 const POSTGRES_UNIQUE_VIOLATION = "P2002";
@@ -95,25 +98,19 @@ export async function registerAction(
   const title = parsed.data.title?.trim() || null;
   const department = parsed.data.department?.trim() || null;
 
+  let userId: string;
   try {
     const passwordHash = await bcrypt.hash(password, 10);
-    await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        name,
-        title,
-        department,
-      },
+    const user = await prisma.user.create({
+      data: { email, passwordHash, name, title, department },
       select: { id: true },
     });
+    userId = user.id;
   } catch (err) {
     if (isPrismaKnownError(err) && err.code === POSTGRES_UNIQUE_VIOLATION) {
       return {
         status: "error",
-        fieldErrors: {
-          email: "An account with this email already exists.",
-        },
+        fieldErrors: { email: "An account with this email already exists." },
       };
     }
     console.error("registerAction: failed to create user", err);
@@ -123,33 +120,19 @@ export async function registerAction(
     };
   }
 
-  // Sign the new user in. `signIn` throws a redirect — we let it bubble.
-  try {
-    await signIn("credentials", {
-      email,
-      password,
-      redirectTo: "/directory",
-    });
-  } catch (err) {
-    // Auth.js wraps the NEXT_REDIRECT in an AuthError only on genuine auth
-    // failure; the redirect itself uses a separate error type that we must
-    // re-throw for Next to handle.
-    if (err instanceof AuthError) {
-      return {
-        status: "error",
-        formError:
-          "Your account was created, but we couldn't sign you in automatically. Please sign in.",
-      };
-    }
-    throw err;
-  }
+  // Create and send a verification token.
+  const { token, hash } = generateToken();
+  await prisma.emailVerificationToken.deleteMany({ where: { userId } });
+  await prisma.emailVerificationToken.create({
+    data: { userId, tokenHash: hash, expiresAt: addMinutes(60 * 24) },
+  });
+  await sendVerificationEmail(email, token).catch(console.error);
 
-  return { status: "idle" };
+  // Return success — user must verify email before they can log in.
+  return { status: "success", email };
 }
 
-export type LoginFieldErrors = Partial<
-  Record<"email" | "password", string>
->;
+export type LoginFieldErrors = Partial<Record<"email" | "password", string>>;
 
 export type LoginState =
   | { status: "idle" }
@@ -197,11 +180,11 @@ export async function loginAction(
     });
   } catch (err) {
     if (err instanceof AuthError) {
-      // CredentialsSignin is the only failure we expect to bubble.
-      return {
-        status: "error",
-        formError: "Invalid email or password.",
-      };
+      const msg =
+        err.message === "EMAIL_NOT_VERIFIED"
+          ? "Please verify your email before signing in. Check your inbox."
+          : "Invalid email or password.";
+      return { status: "error", formError: msg };
     }
     throw err;
   }
@@ -212,4 +195,3 @@ export async function loginAction(
 export async function signOutAction() {
   await signOut({ redirectTo: "/login" });
 }
-
