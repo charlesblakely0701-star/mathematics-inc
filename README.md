@@ -19,7 +19,7 @@ The directory is pre-seeded with 8 fictional mathematicians. You can sign in as 
 | Paul Erdős | paul.erdos@math-inc.example | theorem1234 |
 | Katherine Johnson | katherine.johnson@math-inc.example | theorem1234 |
 
-Or register a new account — you must verify your email before signing in (see **Environment variables** if mail does not arrive).
+Or register a new account with email/password, or use **Continue with Google** (optional; see environment variables).
 
 ## Tech stack
 
@@ -28,7 +28,7 @@ Or register a new account — you must verify your email before signing in (see 
 | Framework | [Next.js 16](https://nextjs.org) — App Router, React Server Components, Server Actions |
 | Language | TypeScript 5 |
 | Styling | Tailwind CSS v4 (no component library — keeps the dep graph lean) |
-| Auth | [Auth.js v5 (NextAuth)](https://authjs.dev) — Credentials provider, JWT sessions |
+| Auth | [Auth.js v5 (NextAuth)](https://authjs.dev) — Credentials + optional Google OAuth, JWT sessions |
 | ORM | [Prisma 6](https://prisma.io) |
 | Database | [Neon](https://neon.tech) serverless Postgres (free tier) |
 | Hosting | [Vercel](https://vercel.com) |
@@ -71,13 +71,9 @@ pnpm dev
 |---|---|---|
 | `DATABASE_URL` | ✅ | Neon Postgres connection string. Copy from the Neon dashboard → Connection details → **Pooled connection**. Must include `?sslmode=require`. |
 | `AUTH_SECRET` | ✅ | Random 32-byte secret for signing JWT session tokens. Generate with `openssl rand -base64 32`. |
-| `RESEND_API_KEY` | ✅ | API key from [Resend](https://resend.com). Used for sign-up verification and password-reset emails. |
-| `RESEND_FROM_EMAIL` | In production | Sender address on a **domain you verify in Resend** (e.g. `hello@yourdomain.com`). Without this, Resend uses `onboarding@resend.dev`, which only delivers to the email tied to your Resend account — not to arbitrary Gmail addresses. |
-| `AUTH_GOOGLE_ID` | For Google login | OAuth client ID from Google Cloud Console. |
-| `AUTH_GOOGLE_SECRET` | For Google login | OAuth client secret. Enables **Continue with Google** on login/register. |
+| `AUTH_GOOGLE_ID` | Optional | Google OAuth client ID — enables **Continue with Google** on login/register. |
+| `AUTH_GOOGLE_SECRET` | Optional | Google OAuth client secret. |
 | `AUTH_URL` | Only if not on Vercel | Full URL of the deployment, e.g. `http://localhost:3000`. Auth.js auto-detects this on Vercel. |
-
-**Personal Gmail / any inbox:** Transactional email APIs do not let you send from a free shared address to every recipient (spam prevention). You need either a **verified domain** in Resend (a domain is often about $10/year) or **OAuth sign-in** (e.g. Google) so users prove email ownership without you sending mail.
 
 These go in `.env.local` for local dev and as **Vercel project environment variables** in production. `.env*` is gitignored (only `.env.example` is committed).
 
@@ -109,16 +105,15 @@ model User {
 
 1. **Open registration.** Any employee can sign up with their email — there's no admin approval or invitation flow. Edsger's team is small and trusted.
 2. **All registered users can see all profiles.** The directory is auth-gated but not role-gated. There are no private fields.
-3. **Email verification.** New accounts receive a verification link via Resend. Login is blocked until the link is used. **Delivering to arbitrary personal addresses requires a verified sending domain** (set `RESEND_FROM_EMAIL` after DNS setup in Resend); the default test sender only reaches the Resend account email.
-4. **Password reset** is implemented (forgot-password flow) and uses the same Resend configuration constraints as verification.
-5. **department is free-text.** Employees can type whatever they want. This avoids a schema migration and a predefined list that might not match how the team thinks about itself.
-6. **Profiles are always editable by the owner.** There's no "publish" concept — a profile is visible to the directory as soon as registration is complete.
+3. **No email verification or password reset in MVP.** Register with email/password signs you in immediately. Optional Google OAuth for users who prefer it. Transactional email (Resend) deferred to post-MVP.
+4. **department is free-text.** Employees can type whatever they want. This avoids a schema migration and a predefined list that might not match how the team thinks about itself.
+5. **Profiles are always editable by the owner.** There's no "publish" concept — a profile is visible to the directory as soon as registration is complete. Users can delete their own account from `/profile`.
 
 ## Tradeoffs
 
 | Decision | Why |
 |---|---|
-| Credentials auth over OAuth | No external app registration required. Zero configuration for the evaluator to run locally or deploy. |
+| Credentials + optional Google | Email/password works out of the box; Google OAuth optional for personal Gmail without email infrastructure. |
 | JWT sessions, no Session table | One fewer table, fewer database round trips on every request, works well with Neon's connection-pool limits on the free tier. |
 | In-memory search | The directory is small. A DB full-text search would be premature — we'd add `pg_trgm` or Algolia if the employee count grew to thousands. |
 | Tailwind primitives over shadcn/ui | Keeps the dependency tree lean and avoids a slow one-time CLI dance on a machine with TLS restrictions. The components are simple enough to build by hand. |
@@ -133,27 +128,19 @@ Core directory experience is in place:
 - Directory: server-rendered grid, client search, department filter chips
 - Polish: colorized initials avatars, KaTeX “favorite theorem” on detail pages
 - Ops: seed script (8 demo users), in-memory rate limits on auth actions, Vitest unit tests (schemas + utilities)
-- Email: verification on register, forgot/reset password, honest errors when Resend rejects a send, **resend verification** on login for unverified accounts
-- **Google sign-in** (when `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` are set): any Gmail without Resend domain setup
-
-**To enable personal Gmail today:** set Google OAuth env vars (see `.env.example`). **Alternatively:** verify a domain in Resend and set `RESEND_FROM_EMAIL`. Until then, demo seed accounts and the Resend account email work with the test sender.
+- Auth: optional **Google sign-in**; delete own account on `/profile`; user menu in nav
+- No transactional email in MVP (register → immediate sign-in)
 
 ## Future improvements
 
 Grouped by **user impact**, not build order.
 
-### Must-have (remaining setup — not more app code)
-
-| Item | What you do |
-|---|---|
-| **Google OAuth in production** | Create OAuth client in Google Cloud Console; add redirect URI `https://mathematics-inc.vercel.app/api/auth/callback/google`; set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` on Vercel |
-| **Or verified Resend domain** | Add domain at resend.com/domains, DNS records, `RESEND_FROM_EMAIL` on Vercel |
-
-### Nice-to-have (better UX, MVP works without them)
+### Nice-to-have (better UX)
 
 | Item | User experience |
 |---|---|
-| **GitHub OAuth** | Same pattern as Google for developers who prefer GitHub |
+| **Transactional email (Resend)** | Email verification on register, forgot/reset password |
+| **GitHub OAuth** | Same pattern as Google |
 | **Avatar photos** | Upload a photo; keep initials + color as fallback ([Vercel Blob](https://vercel.com/docs/storage/vercel-blob)) |
 | **Profile completeness** | Gentle prompts on `/profile` (“add a bio”, “add interests”) so directory cards are richer |
 | **Department consistency** | Optional enum or suggested list so filter chips stay tidy (chips already work with free-text) |
@@ -168,9 +155,9 @@ Grouped by **user impact**, not build order.
 | **Integration tests** for server actions | Same — quality gate, not product surface |
 | **DB full-text search** (`pg_trgm` / Algolia) | Client-side search is fine for tens of employees |
 | **Prisma Migrate** in CI | `db:push` is acceptable for a single-owner DB; migrate matters for shared prod |
-| **DMARC / deliverability tuning** | After domain verify; marginal until volume grows |
-
 ### Explicitly out of scope for now
+
+- Password reset / email verification (removed from MVP; add back with Resend + domain)
 
 - Role-based private fields or per-department visibility
 - Real-time chat, org chart, HRIS sync

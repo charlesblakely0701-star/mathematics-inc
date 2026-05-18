@@ -22,7 +22,7 @@ export default function RegisterPage() {
         </h1>
         <p className="text-sm text-foreground/60">
           {showGoogle
-            ? "Use Google for instant access, or register with email (verification required)."
+            ? "Use Google for instant access, or register with email and password."
             : "You can fill in the rest later from the directory."}
         </p>
       </header>
@@ -34,7 +34,7 @@ export default function RegisterPage() {
         </>
       )}
 
-      <RegisterForm showGoogleHint={showGoogle} />
+      <RegisterForm />
 
       <p className="text-center text-sm text-foreground/60">
         Already have an account?{" "}

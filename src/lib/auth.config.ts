@@ -3,13 +3,7 @@ import type { NextAuthConfig } from "next-auth";
 // Edge-safe Auth.js config. Imported by middleware (Edge runtime) and by the
 // full Node config in ./auth.ts. Never import Prisma or bcrypt here.
 
-const PUBLIC_ROUTES = [
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
-  "/verify-email",
-] as const;
+const PUBLIC_ROUTES = ["/login", "/register"] as const;
 const ROOT_ROUTE = "/" as const;
 
 function isPublicPath(pathname: string) {
