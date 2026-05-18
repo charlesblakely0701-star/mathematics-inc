@@ -3,19 +3,15 @@
 import { headers } from "next/headers";
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
 
 import { signIn, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { sendVerificationEmail } from "@/lib/email";
 import { isGoogleAuthConfigured } from "@/lib/google-auth";
 import { checkRateLimit, evictExpired } from "@/lib/rate-limit";
-import { generateToken, addMinutes } from "@/lib/tokens";
 import { loginSchema, registerSchema } from "@/lib/validation/auth";
 
 const RATE_LIMIT_REGISTER = 5;
 const RATE_LIMIT_LOGIN = 10;
-const RATE_LIMIT_RESEND_VERIFY = 3;
 
 async function getClientIp(): Promise<string> {
   const hdrs = await headers();
@@ -40,7 +36,6 @@ export type RegisterFieldErrors = Partial<
 
 export type RegisterState =
   | { status: "idle" }
-  | { status: "success"; email: string }
   | { status: "error"; formError?: string; fieldErrors?: RegisterFieldErrors };
 
 const POSTGRES_UNIQUE_VIOLATION = "P2002";
@@ -108,14 +103,19 @@ export async function registerAction(
   const title = parsed.data.title?.trim() || null;
   const department = parsed.data.department?.trim() || null;
 
-  let userId: string;
   try {
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: { email, passwordHash, name, title, department },
+    await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        name,
+        title,
+        department,
+        emailVerified: new Date(),
+      },
       select: { id: true },
     });
-    userId = user.id;
   } catch (err) {
     if (isPrismaKnownError(err) && err.code === POSTGRES_UNIQUE_VIOLATION) {
       return {
@@ -130,34 +130,31 @@ export async function registerAction(
     };
   }
 
-  const { token, hash } = generateToken();
-  await prisma.emailVerificationToken.deleteMany({ where: { userId } });
-  await prisma.emailVerificationToken.create({
-    data: { userId, tokenHash: hash, expiresAt: addMinutes(60 * 24) },
-  });
-
-  const sendResult = await sendVerificationEmail(email, token);
-  if (!sendResult.ok) {
-    await prisma.user.delete({ where: { id: userId } });
-    return {
-      status: "error",
-      formError: sendResult.message,
-    };
+  try {
+    await signIn("credentials", {
+      email,
+      password,
+      redirectTo: "/directory",
+    });
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return {
+        status: "error",
+        formError:
+          "Your account was created, but we couldn't sign you in automatically. Please sign in.",
+      };
+    }
+    throw err;
   }
 
-  return { status: "success", email };
+  return { status: "idle" };
 }
 
 export type LoginFieldErrors = Partial<Record<"email" | "password", string>>;
 
 export type LoginState =
   | { status: "idle" }
-  | {
-      status: "error";
-      formError?: string;
-      fieldErrors?: LoginFieldErrors;
-      unverifiedEmail?: string;
-    };
+  | { status: "error"; formError?: string; fieldErrors?: LoginFieldErrors };
 
 export async function loginAction(
   _prevState: LoginState,
@@ -193,25 +190,9 @@ export async function loginAction(
     return { status: "error", fieldErrors };
   }
 
-  const email = parsed.data.email.trim().toLowerCase();
-
-  const existing = await prisma.user.findUnique({
-    where: { email },
-    select: { emailVerified: true },
-  });
-
-  if (existing && !existing.emailVerified) {
-    return {
-      status: "error",
-      formError:
-        "Please verify your email before signing in. Use the button below to resend the link, or continue with Google if available.",
-      unverifiedEmail: email,
-    };
-  }
-
   try {
     await signIn("credentials", {
-      email,
+      email: parsed.data.email.trim().toLowerCase(),
       password: parsed.data.password,
       redirectTo: "/directory",
     });
@@ -226,61 +207,6 @@ export async function loginAction(
   }
 
   return { status: "idle" };
-}
-
-export type ResendVerificationState =
-  | { status: "idle" }
-  | { status: "success" }
-  | { status: "error"; message: string };
-
-const resendSchema = z.object({ email: z.email() });
-
-export async function resendVerificationAction(
-  _prev: ResendVerificationState,
-  formData: FormData,
-): Promise<ResendVerificationState> {
-  evictExpired();
-  const ip = await getClientIp();
-  if (!checkRateLimit(`resend-verify:${ip}`, RATE_LIMIT_RESEND_VERIFY)) {
-    return {
-      status: "error",
-      message: "Too many requests. Please wait a minute.",
-    };
-  }
-
-  const parsed = resendSchema.safeParse({
-    email: formData.get("email"),
-  });
-  if (!parsed.success) {
-    return { status: "error", message: "Please enter a valid email address." };
-  }
-
-  const email = parsed.data.email.trim().toLowerCase();
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, emailVerified: true },
-  });
-
-  if (user && !user.emailVerified) {
-    const { token, hash } = generateToken();
-    await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } });
-    await prisma.emailVerificationToken.create({
-      data: {
-        userId: user.id,
-        tokenHash: hash,
-        expiresAt: addMinutes(60 * 24),
-      },
-    });
-
-    const sendResult = await sendVerificationEmail(email, token);
-    if (!sendResult.ok) {
-      return { status: "error", message: sendResult.message };
-    }
-  }
-
-  return {
-    status: "success",
-  };
 }
 
 export async function signOutAction() {
