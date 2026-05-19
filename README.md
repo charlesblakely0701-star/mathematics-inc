@@ -6,6 +6,39 @@ A virtual employee directory for the mathematicians of Mathematics, Inc. Any emp
 
 **https://mathematics-inc.vercel.app**
 
+## Reviewer quickstart
+
+If you only have a few minutes, this path hits the main product surface:
+
+### ~30 seconds
+
+1. Open the [live app](https://mathematics-inc.vercel.app) → **Sign in**
+2. Expand **Try a demo account** → choose **Carl Friedrich Gauss** (password `theorem1234` is filled in)
+3. Open Gauss’s card → scroll to **Favorite theorem** (Euler’s identity, rendered with KaTeX)
+4. Search the directory for `prime` or tap a **department** chip
+
+### ~2 minutes
+
+1. **Register** a new account (email/password) → you land in the directory
+2. **My profile** → add bio, interests, and a LaTeX favorite theorem → save
+3. Find yourself in the directory; open your public profile at `/directory/[id]`
+4. **User menu** → sign out; optional: delete account on `/profile`
+
+### What this demonstrates
+
+| Area | Where to look |
+|---|---|
+| Auth + sessions | Register, login, logout, optional Google OAuth |
+| Data model | Prisma `User`, seed script, Neon Postgres on Vercel |
+| Directory UX | Server-rendered grid, client search, department chips |
+| Polish | Colorized avatars, KaTeX on detail pages |
+| Security | `passwordHash` never in public selects; rate limits on auth actions |
+| Engineering | `pnpm test` (Vitest), incremental PR history |
+
+**Re-seed production** (updates demo theorems after deploy): set `DATABASE_URL` locally to the Neon URL, then `pnpm db:seed`.
+
+---
+
 The directory is pre-seeded with 8 fictional mathematicians. You can sign in as any of them:
 
 | Name | Email | Password |
@@ -109,15 +142,25 @@ model User {
 4. **department is free-text.** Employees can type whatever they want. This avoids a schema migration and a predefined list that might not match how the team thinks about itself.
 5. **Profiles are always editable by the owner.** There's no "publish" concept — a profile is visible to the directory as soon as registration is complete. Users can delete their own account from `/profile`.
 
-## Tradeoffs
+## Tradeoffs & decisions (for reviewers)
 
 | Decision | Why |
 |---|---|
 | Credentials + optional Google | Email/password works out of the box; Google OAuth optional for personal Gmail without email infrastructure. |
 | JWT sessions, no Session table | One fewer table, fewer database round trips on every request, works well with Neon's connection-pool limits on the free tier. |
+| No email in MVP | Resend without a verified domain only delivers to the account owner — half-working email is worse than deferring it. Register signs you in immediately; Google is the low-friction alternative. |
+| In-memory rate limits | Good enough for a single-instance MVP; swap to Upstash when horizontally scaled. |
 | In-memory search | The directory is small. A DB full-text search would be premature — we'd add `pg_trgm` or Algolia if the employee count grew to thousands. |
+| `PUBLIC_USER_SELECT` allow-list | `passwordHash` is only read in Auth.js `authorize`; every directory/profile query uses an explicit `select`. |
 | Tailwind primitives over shadcn/ui | Keeps the dependency tree lean and avoids a slow one-time CLI dance on a machine with TLS restrictions. The components are simple enough to build by hand. |
 | Free-text department | See assumption 5 above. |
+| Demo accounts on `/login` | Reviewers often skip the README; one-click fill makes the hosted demo frictionless. |
+
+### Tests
+
+```bash
+pnpm test    # Vitest — validation schemas, utilities, rate limiting
+```
 
 ## MVP scope (already shipped)
 
