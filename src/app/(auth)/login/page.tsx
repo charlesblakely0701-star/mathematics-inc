@@ -32,6 +32,13 @@ export default function LoginPage() {
 
       <LoginForm />
 
+      {!showGoogle && (
+        <p className="text-center text-xs text-foreground/50">
+          Google sign-in is not configured in this environment. Use email and
+          password or a demo account above.
+        </p>
+      )}
+
       <p className="text-center text-sm text-foreground/60">
         New to Mathematics, Inc.?{" "}
         <Link

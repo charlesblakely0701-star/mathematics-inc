@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { loginAction, type LoginState } from "@/app/actions/auth";
+import { DemoLoginHint } from "@/components/auth/demo-login-hint";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, Input, Label } from "@/components/ui/field";
 
@@ -20,11 +21,20 @@ function SubmitButton() {
 
 export function LoginForm() {
   const [state, formAction] = useActionState(loginAction, initialState);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const fieldErrors = state.status === "error" ? state.fieldErrors ?? {} : {};
   const formError = state.status === "error" ? state.formError : undefined;
 
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
+      <DemoLoginHint
+        onUseDemo={(demoEmail, demoPassword) => {
+          setEmail(demoEmail);
+          setPassword(demoPassword);
+        }}
+      />
+
       <Field>
         <Label htmlFor="email">Email</Label>
         <Input
@@ -33,6 +43,8 @@ export function LoginForm() {
           type="email"
           autoComplete="email"
           required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           invalid={!!fieldErrors.email}
         />
         <FieldError>{fieldErrors.email}</FieldError>
@@ -46,6 +58,8 @@ export function LoginForm() {
           type="password"
           autoComplete="current-password"
           required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           invalid={!!fieldErrors.password}
         />
         <FieldError>{fieldErrors.password}</FieldError>
